@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Snapshot Exporter</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="wrap">
+      <h1>Linux.do 快照导出</h1>
+
+      <label for="scope">导出范围</label>
+      <select id="scope">
+        <option value="op_only">仅主楼（默认）</option>
+        <option value="op_plus_replies">主楼 + 楼主回帖</option>
+        <option value="all_posts">全部楼层</option>
+      </select>
+
+      <button id="exportBtn" type="button">导出为 Markdown</button>
+
+      <p class="hint">
+        图片将保留原图 URL；文件名为帖子标题；失败时会提示复制源码上报。
+      </p>
+      <p id="status" class="status" aria-live="polite"></p>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>
