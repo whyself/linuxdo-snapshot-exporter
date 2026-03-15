@@ -17,11 +17,12 @@
         <option value="all_posts">全部楼层</option>
       </select>
 
-      <button id="exportBtn" type="button">导出为 Markdown</button>
+      <div class="actions">
+        <button id="exportBtn" type="button">导出 Markdown</button>
+        <button id="exportImageBtn" type="button" class="secondary">导出长图</button>
+      </div>
 
-      <p class="hint">
-        图片将保留原图 URL；文件名为帖子标题；失败时会提示复制源码上报。
-      </p>
+      <p class="hint">Markdown 和长图都基于当前页面抓取，建议先滚动加载到你需要的内容。</p>
       <p id="status" class="status" aria-live="polite"></p>
     </main>
     <script src="popup.js"></script>

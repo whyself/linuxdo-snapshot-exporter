@@ -1,11 +1,33 @@
 const SITE_ORIGIN = "https://linux.do";
+let captureSession = null;
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  if (!message || message.type !== "EXPORT_MARKDOWN") {
+  if (!message || !message.type) {
     return false;
   }
 
   try {
+    if (message.type === "LONGSHOT_START") {
+      sendResponse(startLongshotSession(message.scope || "op_only"));
+      return true;
+    }
+
+    if (message.type === "LONGSHOT_SCROLL") {
+      scrollForLongshot(Number(message.y || 0));
+      sendResponse({ ok: true });
+      return true;
+    }
+
+    if (message.type === "LONGSHOT_END") {
+      finishLongshotSession();
+      sendResponse({ ok: true });
+      return true;
+    }
+
+    if (message.type !== "EXPORT_MARKDOWN") {
+      return false;
+    }
+
     const scope = message.scope || "op_only";
     const extracted = extractTopicData(scope);
     const markdown = buildMarkdown(extracted);
@@ -21,6 +43,140 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
   return true;
 });
+
+function startLongshotSession(scope) {
+  if (!/^\/t\//.test(location.pathname)) {
+    throw new Error("当前页面不是可导出的帖子页。");
+  }
+
+  const root = document.scrollingElement || document.documentElement;
+  if (!root) {
+    throw new Error("无法读取页面尺寸。");
+  }
+
+  if (!captureSession) {
+    captureSession = {
+      scrollY: window.scrollY,
+      styleId: "__snapshot_longshot_style__"
+    };
+
+    const style = document.createElement("style");
+    style.id = captureSession.styleId;
+    style.textContent = [
+      "header.d-header,",
+      ".floating-toc,",
+      ".topic-progress,",
+      ".post-notice,",
+      ".fk-d-menu,",
+      ".composer-open,",
+      ".composer-popup,",
+      ".btn.back-to-top,",
+      ".timeline-container { visibility: hidden !important; }"
+    ].join("\n");
+    document.head.appendChild(style);
+  }
+
+  const region = buildLongshotRegion(scope || "op_only");
+
+  return {
+    ok: true,
+    totalHeight: Math.max(root.scrollHeight, document.body ? document.body.scrollHeight : 0),
+    viewportHeight: window.innerHeight,
+    viewportWidth: window.innerWidth,
+    devicePixelRatio: window.devicePixelRatio || 1,
+    captureX: region.x,
+    captureY: region.y,
+    captureWidth: region.width,
+    captureHeight: region.height
+  };
+}
+
+function scrollForLongshot(y) {
+  const root = document.scrollingElement || document.documentElement;
+  if (!root) {
+    return;
+  }
+  const maxY = Math.max(0, root.scrollHeight - window.innerHeight);
+  const nextY = Math.max(0, Math.min(Math.round(y), maxY));
+  window.scrollTo(0, nextY);
+}
+
+function finishLongshotSession() {
+  if (!captureSession) {
+    return;
+  }
+
+  const style = document.getElementById(captureSession.styleId);
+  if (style) {
+    style.remove();
+  }
+
+  window.scrollTo(0, captureSession.scrollY || 0);
+  captureSession = null;
+}
+
+function collectPostRoots() {
+  let roots = Array.from(document.querySelectorAll(".topic-post"));
+  if (roots.length === 0) {
+    roots = Array.from(document.querySelectorAll("article[data-post-id]"));
+  }
+  return roots;
+}
+
+function buildLongshotRegion(scope) {
+  const postRoots = collectPostRoots();
+  if (postRoots.length === 0) {
+    throw new Error("未找到可截图的楼层内容。");
+  }
+
+  const opAuthor = readAuthor(postRoots[0]) || "";
+  let selected = postRoots;
+
+  if (scope === "op_only") {
+    selected = [postRoots[0]];
+  } else if (scope === "op_plus_replies") {
+    selected = postRoots.filter((root) => readAuthor(root) === opAuthor);
+    if (selected.length === 0) {
+      selected = [postRoots[0]];
+    }
+  }
+
+  let minX = Number.POSITIVE_INFINITY;
+  let minY = Number.POSITIVE_INFINITY;
+  let maxX = 0;
+  let maxY = 0;
+
+  selected.forEach((root) => {
+    const target = root.querySelector(".topic-body") || root.querySelector(".cooked") || root;
+    const rect = target.getBoundingClientRect();
+    const left = Math.max(0, rect.left + window.scrollX);
+    const top = Math.max(0, rect.top + window.scrollY);
+    const right = Math.max(left, rect.right + window.scrollX);
+    const bottom = Math.max(top, rect.bottom + window.scrollY);
+
+    minX = Math.min(minX, left);
+    minY = Math.min(minY, top);
+    maxX = Math.max(maxX, right);
+    maxY = Math.max(maxY, bottom);
+  });
+
+  if (!Number.isFinite(minX) || !Number.isFinite(minY) || maxX <= minX || maxY <= minY) {
+    const root = document.scrollingElement || document.documentElement;
+    return {
+      x: 0,
+      y: 0,
+      width: Math.max(1, window.innerWidth),
+      height: Math.max(1, root ? root.scrollHeight : window.innerHeight)
+    };
+  }
+
+  return {
+    x: Math.round(minX),
+    y: Math.round(minY),
+    width: Math.max(1, Math.round(maxX - minX)),
+    height: Math.max(1, Math.round(maxY - minY))
+  };
+}
 
 function extractTopicData(scope) {
   if (!/^\/t\//.test(location.pathname)) {

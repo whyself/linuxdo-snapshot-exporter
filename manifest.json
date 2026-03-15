@@ -2,11 +2,12 @@
   "manifest_version": 3,
   "name": "Linux.do Snapshot Exporter",
   "version": "0.1.0",
-  "description": "Export Linux.do topic content to Markdown.",
+  "description": "Export Linux.do topic content to Markdown and long image.",
   "permissions": [
     "activeTab",
     "downloads",
-    "storage"
+    "storage",
+    "scripting"
   ],
   "host_permissions": [
     "https://linux.do/*"

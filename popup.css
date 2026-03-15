@@ -45,6 +45,15 @@ button {
   font-weight: 600;
 }
 
+.actions {
+  display: grid;
+  gap: 8px;
+}
+
+.secondary {
+  background: linear-gradient(135deg, #6a7ca8, #4f5f89);
+}
+
 button:disabled {
   opacity: 0.65;
   cursor: not-allowed;
