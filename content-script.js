@@ -207,7 +207,7 @@ function nodeToMarkdown(node) {
     case "h5":
     case "h6": {
       const level = Number(tag.slice(1));
-      const text = cleanInlineText(childrenToMarkdown(Array.from(node.childNodes)));
+      const text = extractCleanHeadingText(node);
       return text ? `${"#".repeat(level)} ${text}\n\n` : "";
     }
     case "p": {
@@ -321,6 +321,24 @@ function absoluteUrl(url) {
   } catch {
     return "";
   }
+}
+
+function extractCleanHeadingText(headingNode) {
+  const clone = headingNode.cloneNode(true);
+
+  clone.querySelectorAll(
+    "a.anchor, a.hashtag, a.heading-anchor, a.anchor-link, .heading-link, a[href^='#']"
+  ).forEach((el) => el.remove());
+
+  clone.querySelectorAll("a").forEach((el) => {
+    const text = cleanInlineText(el.textContent || "").toLowerCase();
+    const href = (el.getAttribute("href") || "").trim();
+    if ((text === "链接" || text === "link" || text === "anchor") && href.includes("#")) {
+      el.remove();
+    }
+  });
+
+  return cleanInlineText(clone.textContent || "");
 }
 
 function buildMarkdown(data) {
