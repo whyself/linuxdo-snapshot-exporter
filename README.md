@@ -1,4 +1,4 @@
-# snapshot
+# linuxdo-snapshot-exporter
 
 Chrome 扩展：抓取 Linux.do 主题并导出内容。
 
@@ -20,7 +20,7 @@ Chrome 扩展：抓取 Linux.do 主题并导出内容。
 1. 打开 `chrome://extensions/`
 2. 开启右上角“开发者模式”
 3. 点击“加载已解压的扩展程序”
-4. 选择当前仓库目录 `snapshot`
+4. 选择当前仓库目录 `linuxdo-snapshot-exporter`
 
 ## 使用方式
 
